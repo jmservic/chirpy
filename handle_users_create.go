@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (cfg apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request){
+func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request){
 	params := struct{
 		Email string `json:"email"`
 	}{}	

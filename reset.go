@@ -2,15 +2,15 @@ package main
 
 import "net/http"
 
-func (cfg *apiConfig) resetMetrics(w http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
 	if cfg.platform != "dev" {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	cfg.fileserverHits.Store(0)
-	err := cfg.db.DeleteUsers(req.Context())
+	err := cfg.db.Reset(req.Context())
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error creating a new user", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset the database: ", err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

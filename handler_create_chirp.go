@@ -1,0 +1,52 @@
+package main
+
+import (
+	"net/http"
+	"encoding/json"
+	"github.com/jmservic/chirpy/internal/database"
+	"github.com/google/uuid"
+	"time"
+)
+
+type Chirp struct {
+	ID uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body string `json:"body"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (cfg apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Request) {
+	params := struct {
+		Body string `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}{}
+
+	decoder := json.NewDecoder(req.Body)
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error decoding parameters", err)
+		return
+	} 
+
+	const maxChirpLength = 140
+	if len(params.Body) > maxChirpLength {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
+		return
+	}
+
+	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{Body: params.Body, UserID: params.UserID})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating the chirp", err)
+		return
+	}
+	rtnVals := Chirp{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body: chirp.Body,
+		UserID: chirp.UserID,
+	}
+
+	respondWithJSON(w, http.StatusCreated, rtnVals)
+}

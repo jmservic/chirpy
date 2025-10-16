@@ -36,7 +36,7 @@ func main() {
 	dbQueries := database.New(db)
 	const port = "8080"
 	apiCfg := apiConfig {
-		fileserverHits: atomic.Int32{}
+		fileserverHits: atomic.Int32{},
 		db: dbQueries, 
 		platform: platform,}
 
@@ -45,11 +45,13 @@ func main() {
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
 	serveMux.HandleFunc("GET /api/healthz", goodHealth)
-	serveMux.HandleFunc("POST /api/validate_chirp", validateChirp)
-	serveMux.HandleFunc("POST /api/users", apiCfg.handleCreateUser)
+	//serveMux.HandleFunc("POST /api/validate_chirp", validateChirp)
+	serveMux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
+	serveMux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
+	serveMux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.hitsMetric)
-	serveMux.HandleFunc("POST /admin/reset", apiCfg.resetMetrics)
+	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
 	server := http.Server{
 		Handler: serveMux,
