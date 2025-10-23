@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"time"
 	"github.com/golang-jwt/jwt/v5"
+	"net/http"
+	"strings"
 )
 
 type TokenType string
@@ -70,4 +72,16 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 	return id, nil
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+	authHeader, ok := headers["Authorization"]
+	if !ok {
+		return "", errors.New("missing authorization header")
+	}
+	authFields := strings.Fields(authHeader)
+	if len(authFields) != 2 {
+		return "", errors.New("authorization header is in the wrong format")
+	}
+	return authFields[1], nil
 }
