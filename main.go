@@ -31,7 +31,7 @@ func main() {
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("Error opening database: %s", err)
+		log.Fatalf("Error opening database: %s", err)
 	}
 	dbQueries := database.New(db)
 	const port = "8080"
@@ -47,8 +47,10 @@ func main() {
 	serveMux.HandleFunc("GET /api/healthz", goodHealth)
 	//serveMux.HandleFunc("POST /api/validate_chirp", validateChirp)
 	serveMux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
+	serveMux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
 	serveMux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	serveMux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	serveMux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
 
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.hitsMetric)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
