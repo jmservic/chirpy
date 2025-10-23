@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/google/uuid"
 	"time"
+	"net/http"
 
 )
 
@@ -70,7 +71,7 @@ func TestCheckPasswordHashReturnsFalseForIncorrectPassword(t *testing.T) {
 	
 }
 
-func TestMakeJWTCreatesValidToken(t *testing.T) {
+func TestJWTValidation(t *testing.T) {
 	tokenSecret := "iovelyxd"
 	userID := uuid.New()
 	expiresIn := 5 * time.Second
@@ -118,6 +119,54 @@ func TestMakeJWTCreatesValidToken(t *testing.T) {
 			}
 			if tt.wantUserID != parsedUserID {
 				t.Errorf("ValidateJWT() parsedUserID = %v, want %v", parsedUserID, tt.wantUserID)
+			}
+		})
+	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+	tests := []struct {
+		name string
+		header http.Header
+		tokenString string
+		wantErr bool
+	}{
+		{
+			name: "Valid Authorization Header",
+			header: http.Header{
+				"Authorization": []string{"Bearer abcdefghijklmnopqrstuvwxyz"},
+			},
+			tokenString: "abcdefghijklmnopqrstuvwxyz",
+			wantErr: false,
+		},
+		{
+			name: "Missing header",
+			header: http.Header{
+				"Content-Type": []string{"text/plain"},
+			},
+			tokenString: "",
+			wantErr: true,
+
+		},
+		{
+			name: "Incorrectly formatted header",
+			header: http.Header{
+				"Authorization": []string{"abcdefghijkmnopqrstuvwxyz!"},
+			},
+			tokenString: "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T){
+			tokenString, err := GetBearerToken(tt.header)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetBearerToken() error = %v, want err %v", err, tt.wantErr)
+				return
+			}
+			if tokenString != tt.tokenString {
+				t.Errorf("GetBearerToken tokenString = %v, want %v", tokenString, tt.tokenString)
 			}
 		})
 	}
