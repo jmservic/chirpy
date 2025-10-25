@@ -9,6 +9,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
+	"crypto/rand"
+	"encoding/hex"
 )
 
 type TokenType string
@@ -84,4 +86,10 @@ func GetBearerToken(headers http.Header) (string, error) {
 		return "", errors.New("authorization header is in the wrong format")
 	}
 	return authFields[1], nil
+}
+
+func MakeRefreshToken() (string, error) {
+	refreshBytes := make([]byte, 32)
+	rand.Read(refreshBytes)
+	return hex.EncodeToString(refreshBytes), nil
 }

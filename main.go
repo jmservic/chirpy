@@ -10,23 +10,32 @@ import (
 	"os"
 	"database/sql"
 	"github.com/jmservic/chirpy/internal/database"
+	"github.com/jmservic/chirpy/internal/auth"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	db *database.Queries
 	platform string
+	secret string
 }
 
 func main() {
 	godotenv.Load()
+
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
+
 	platform := os.Getenv("PLATFORM")
-	if platform == ""{
+	if platform == "" {
 		log.Fatal("PLATFORM must be set")
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET must be set")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -38,7 +47,9 @@ func main() {
 	apiCfg := apiConfig {
 		fileserverHits: atomic.Int32{},
 		db: dbQueries, 
-		platform: platform,}
+		platform: platform,
+		secret: jwtSecret,
+	}
 
 	serveMux := http.NewServeMux()
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
@@ -51,7 +62,8 @@ func main() {
 	serveMux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	serveMux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 	serveMux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
-
+	serveMux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+	serveMux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.hitsMetric)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
@@ -66,6 +78,24 @@ func main() {
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		cfg.fileserverHits.Add(1)
+		next.ServeHTTP(w, req)
+	})
+}
+
+func (cfg *apiConfig) middlewareAuthentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		token, err := auth.GetBearerToken(req.Header)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Error getting JWT", err)
+			return
+		}
+
+		_, err = auth.ValidateJWT(token, cfg.secret)
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Error validating JWT", err)
+			return
+		}
+
 		next.ServeHTTP(w, req)
 	})
 }

@@ -171,4 +171,3 @@ func TestGetBearerToken(t *testing.T) {
 		})
 	}
 }
-

@@ -4,12 +4,14 @@ import (
 	"net/http"
 	"encoding/json"
 	"github.com/jmservic/chirpy/internal/auth"
+	"time"
 )
 
 func (cfg apiConfig) handlerLogin(w http.ResponseWriter, res *http.Request) {
 	params := struct{
 		Email string `json:"email"`
 		Password string `json:"password"`
+	//	ExpiresInSecs int `json:"expires_in_seconds,omitempty"`
 	}{}	
 
 	decoder := json.NewDecoder(res.Body)
@@ -34,11 +36,37 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, res *http.Request) {
 		return
 
 	}
-	rtnVals := UserResources{
+	expirationTime := time.Hour
+/*	if params.ExpiresInSecs > 0 && params.ExpiresInSecs < 3600 {
+		expirationTime = time.Duration(params.ExpiresInSecs) * time.Second
+	} */
+	
+	token, err := auth.MakeJWT(user.ID, cfg.secret, expirationTime)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error creating JWT token", err)
+		return
+	}
+	refreshToken, _ := auth.MakeRefreshToken()
+	err = cfg.db.StoreRefreshToken(res.Context(), refreshToken)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error storing refresh token", err)
+		return
+	}
+
+	rtnVals := struct{
+		UserResources
+		Token string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}{
+		UserResources: UserResources{
 		Id: user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		},
+		Token: token,
+		RefreshToken: refreshToken,
 	}
+
 	respondWithJSON(w, http.StatusOK, rtnVals)
 }
