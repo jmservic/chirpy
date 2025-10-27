@@ -68,6 +68,7 @@ func main() {
 	serveMux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.hitsMetric)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+	serveMux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerChirpyRedUpgrade)
 
 	server := http.Server{
 		Handler: serveMux,
