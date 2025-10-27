@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -23,14 +24,26 @@ func (q *Queries) GetUserFromRefreshToken(ctx context.Context, token string) (uu
 }
 
 const refreshTokenExpired = `-- name: RefreshTokenExpired :one
-SELECT expires_at < NOW() FROM refresh_tokens WHERE token = $1
+SELECT (expires_at < NOW() OR revoked_at IS NOT NULL) FROM refresh_tokens WHERE token = $1
 `
 
-func (q *Queries) RefreshTokenExpired(ctx context.Context, token string) (bool, error) {
+func (q *Queries) RefreshTokenExpired(ctx context.Context, token string) (sql.NullBool, error) {
 	row := q.db.QueryRowContext(ctx, refreshTokenExpired, token)
-	var column_1 bool
+	var column_1 sql.NullBool
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE refresh_tokens
+SET updated_at = NOW(),
+	revoked_at = NOW()
+WHERE token = $1
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) error {
+	_, err := q.db.ExecContext(ctx, revokeRefreshToken, token)
+	return err
 }
 
 const storeRefreshToken = `-- name: StoreRefreshToken :exec

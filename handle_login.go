@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"github.com/jmservic/chirpy/internal/auth"
+	"github.com/jmservic/chirpy/internal/database"
 	"time"
 )
 
@@ -47,7 +48,10 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, res *http.Request) {
 		return
 	}
 	refreshToken, _ := auth.MakeRefreshToken()
-	err = cfg.db.StoreRefreshToken(res.Context(), refreshToken)
+	err = cfg.db.StoreRefreshToken(res.Context(), database.StoreRefreshTokenParams{
+		Token: refreshToken,
+		UserID: user.ID,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error storing refresh token", err)
 		return

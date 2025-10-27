@@ -6,14 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, res *http.Request){
-	chirpID, err := uuid.Parse(res.PathValue("chirpID"))
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, req *http.Request){
+	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't parse the Chirp ID", err)
 	return
 	}
 	
-	dbChirp, err := cfg.db.GetChirp(res.Context(), chirpID)
+	dbChirp, err := cfg.db.GetChirp(req.Context(), chirpID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Error finding chirp with that ID", err)
 		return

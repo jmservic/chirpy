@@ -12,4 +12,10 @@ VALUES(
 SELECT user_id FROM refresh_tokens WHERE token = $1;
 
 -- name: RefreshTokenExpired :one
-SELECT expires_at < NOW() FROM refresh_tokens WHERE token = $1;
+SELECT (expires_at < NOW() OR revoked_at IS NOT NULL) FROM refresh_tokens WHERE token = $1;
+
+-- name: RevokeRefreshToken :exec
+UPDATE refresh_tokens
+SET updated_at = NOW(),
+	revoked_at = NOW()
+WHERE token = $1;
