@@ -4,9 +4,17 @@ import (
 	"net/http"
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/jmservic/chirpy/internal/auth"
 )
 
 func (cfg apiConfig) handlerChirpyRedUpgrade(w http.ResponseWriter, req *http.Request) {
+	apiKey, err := auth.GetAPIKey(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "error getting polka api key", err)
+	}
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "bad api key", nil)
+	}
 	params := struct{
 		Event string `json:"event"`
 		Data struct{
@@ -15,7 +23,7 @@ func (cfg apiConfig) handlerChirpyRedUpgrade(w http.ResponseWriter, req *http.Re
 	}{}
 	
 	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "unable to decode request body", err)
 	}

@@ -9,7 +9,7 @@ import(
 func (cfg apiConfig) handlerDeleteChirp(w http.ResponseWriter, req *http.Request) {
 	token, err := auth.GetBearerToken(req.Header)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Error getting JWT", err)
+		respondWithError(w, http.StatusUnauthorized, "Error getting JWT", err)
 		return
 	}
 
